@@ -2,6 +2,7 @@ package filtercomments
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 )
 
@@ -35,17 +36,17 @@ func (b *Reader) Read(p []byte) (n int, err error) {
 			n := copy(p, b.buf)
 			b.buf = []byte{}
 			return n, nil
-		} else {
-			// only part of buf can be send
-			n := copy(p, b.buf)
-			b.buf = b.buf[n:]
-			return n, nil
 		}
+		// only part of buf can be send
+		n := copy(p, b.buf)
+		b.buf = b.buf[n:]
+		return n, nil
+
 	}
 
 	// Get new data
 	for {
-		// TODO: Prefix is ignored
+		// TODO: Prefix is ignored. Assuming it will return a whole new line.
 		b.buf, _, err = (*b.rd).ReadLine()
 		if err != nil {
 			b.err = err
@@ -59,6 +60,11 @@ func (b *Reader) Read(p []byte) (n int, err error) {
 			continue
 		}
 		break
+	}
+	//Search for a comment in the line.
+	pos := bytes.IndexByte(b.buf, b.commchar)
+	if pos > -1 {
+		b.buf = b.buf[:pos]
 	}
 	b.buf = append(b.buf, '\n')
 	// Now that buf is full, return 0 so this method is called again.
